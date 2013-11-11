@@ -20,7 +20,7 @@ position: fixed;
 background-color:rgba(0,0,0,0.8);
 bottom: 0px;
 }
-	.listdata,.list_close,#search{
+	.listdata,.list_close,#search,#taglist{
 		-webkit-transition:all .6s ease-in-out;
 		-moz-transition:all .6s ease-in-out;
 		-ms-transition:all .6s ease-in-out;
@@ -231,7 +231,7 @@ border-radius: 5px 5px 0px 0px;
 		display: inline-block;
 		margin-left: 50px;
 	}
-	#search{
+	#search,#taglist{
 		height:0px;
 		overflow:hidden;
 		background-color: rgba(255,255,255,0.2);
@@ -246,6 +246,20 @@ border-radius: 5px 5px 0px 0px;
 		width: 30%;
 		outline:none;
 	}
+	.list_res_tags {
+margin: 2px 20px;
+}
+.list_res_tags div,#taglist_list div{
+display: inline-block;
+background-color: rgba(255,255,255,0.2);
+cursor:pointer;
+padding: 5px;
+}#taglist_list div{
+margin: 10px;
+}
+.list_res_tags div:hover,#taglist_list div:hover{
+background-color: rgba(255,255,255,0.1);
+}
   </style>
 </head>
 <body ondragstart="return false;">
@@ -262,6 +276,13 @@ border-radius: 5px 5px 0px 0px;
     	<div id="search">
         	<input id="search_t" type="text" placeholder="输关键字搜索,以后绝对不能搜番号的噗~~">
             <div id="go_search" class="list_res_btn" onclick="search_word(document.getElementById('search_t').value)">噗~</div>
+        </div>
+        <div id="taglist">
+        	<center style="font-size: 24px;">下面是各种的tag的嗦~~&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="list_res_btn" onclick="close_tag_list();">关闭</div></center>
+            
+        	<div id="taglist_list">
+        		loading...
+            </div>
         </div>
     </div>
 	<div id="list"></div>
@@ -341,7 +362,7 @@ function mutilstring(f,vals) {　
       });
   return rhtml;
 }
-function add_node(datas,cover_ba64,title,add_time,update_time,total_size,des){
+function add_node(datas,cover_ba64,title,add_time,update_time,total_size,des,tag){
 	var dldatas='';
 	for(var i=0;i<datas.length;i++){
 		var other='';
@@ -367,6 +388,14 @@ function add_node(datas,cover_ba64,title,add_time,update_time,total_size,des){
 				<div class="list_res_item_size">%$4%</div>
 			</div>
 		*/},[datas[i].data,datas[i].name,(i+1),datas[i].size,other])
+	}
+	var tags='';
+	if(tag){
+	for(var i=0;i<tag.length;i++){
+		tags=tags+mutilstring(function(){/*
+			<div onclick="search_tag(%$2%)">%$1%</div>
+		*/},[tag[i].name,tag[i].id])
+	}
 	}
 	return mutilstring(function(){/*
 		<div class="listdata" onclick="show_unfold(this);">
@@ -394,9 +423,12 @@ function add_node(datas,cover_ba64,title,add_time,update_time,total_size,des){
                 <div class="list_res_des">
                 	%$7%
                 </div>
+				<div class="list_res_tags">
+                	%$8%
+                </div>
 			</div>
 		</div>
-	*/},[cover_ba64,title,add_time,update_time,total_size,dldatas,des]);
+	*/},[cover_ba64,title,add_time,update_time,total_size,dldatas,des,tags]);
 }
 MAX_PAGE=1;
 CACHED_DATAS=new Array;
@@ -433,7 +465,7 @@ function parse_page(page){
 		document.getElementById("page_list").innerHTML=opt;
 		opt="";
 		for(var i=0;i<datas.length;i++){
-			opt=opt+add_node(datas[i].res,datas[i].cover,datas[i].name,datas[i].add_time,datas[i].update_time,datas[i].size,datas[i].content);
+			opt=opt+add_node(datas[i].res,datas[i].cover,datas[i].name,datas[i].add_time,datas[i].update_time,datas[i].size,datas[i].content,datas[i].tag);
 		}
 		document.getElementById('list').innerHTML=opt;
 	}
@@ -451,6 +483,15 @@ function parse_page(page){
 			})
 		}else if(SEARCH_WORD){
 			GETDATA("/api/search",{limit:5,offset:page,keywords:SEARCH_WORD},function(data){
+				MAX_PAGE=(data.datas.total_num)/5;
+				MAX_PAGE=(MAX_PAGE==parseInt(MAX_PAGE))?MAX_PAGE:(parseInt(MAX_PAGE)+1);
+				CACHED_DATAS[page-1]=data.datas.datas;
+				parsenodes(CACHED_DATAS[page-1]);
+			},function(e){
+				console.log(e);
+			})
+		}else if(SEARCH_TAG){
+			GETDATA("/api/search",{limit:5,offset:page,tagid:SEARCH_TAG},function(data){
 				MAX_PAGE=(data.datas.total_num)/5;
 				MAX_PAGE=(MAX_PAGE==parseInt(MAX_PAGE))?MAX_PAGE:(parseInt(MAX_PAGE)+1);
 				CACHED_DATAS[page-1]=data.datas.datas;
@@ -477,11 +518,27 @@ function search_word(word){
 	parse_page(1);
 }
 function search_tag(tagid){
+	close_tag_list();
 	SEARCH_WORD=0;
 	SEARCH_TAG=tagid;
 	MAX_PAGE=1;
 	CACHED_DATAS=new Array;
 	parse_page(1);
+}
+function show_all_tags(){
+	document.getElementById('taglist_list').innerHTML="Loading...";
+	GETDATA("/api/tags",{limit:100},function(data){
+		var opt='';
+		var tag=data;
+		for(var i=0;i<tag.length;i++){
+			opt=opt+mutilstring(function(){/*
+				<div onclick="search_tag(%$2%)">%$1% (%$3%)</div>
+			*/},[tag[i].name,tag[i].id,tag[i].count])
+		}
+		document.getElementById('taglist_list').innerHTML=opt;
+	},function(e){
+		console.log(e);
+	})
 }
 var locker=0;
 function show_unfold(node){
@@ -556,7 +613,17 @@ document.getElementById('menu_search').addEventListener("click",function(){
 },false);
 document.getElementById('menu_main').addEventListener("click",function(){
 	document.getElementById('search').style.height="0px";
+	close_tag_list();
+	parse_page(1);
 },false);
+function close_tag_list(){
+	document.getElementById('taglist').style.height="0px";
+}
+document.getElementById('menu_tags').addEventListener("click",function(){
+	document.getElementById('taglist').style.height="600px";
+	show_all_tags();
+},false);
+
 </script>
 </body>
 </html>
