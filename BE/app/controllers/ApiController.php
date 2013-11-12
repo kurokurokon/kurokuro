@@ -5,11 +5,11 @@ class ApiController extends \BaseController {
 		$limit = Input::get("limit");
 		$offset = Input::get("offset");
 		if (empty($limit) ||
-			preg_match('/^\d+$/', $limit)){
+			preg_match('/^\d+$/', $limit) == 0){
 			$limit = 20;
 		}
 		if (empty($offset) ||
-			preg_match('/^\d+$/', $offset)){
+			preg_match('/^\d+$/', $offset) == 0){
 			$offset = 0;
 		}
 		$realOffset = $limit * $offset;
@@ -131,12 +131,15 @@ class ApiController extends \BaseController {
 		$keywords = Input::get("keywords");
 		$tagID = Input::get("tagid");
 
+		$limit = Input::get("limit");
+		$offset = Input::get("offset");
+
 		if (empty($limit) ||
-			preg_match('/^\d+$/', $limit)){
+			preg_match('/^\d+$/', $limit) == 0){
 			$limit = 20;
 		}
 		if (empty($offset) ||
-			preg_match('/^\d+$/', $offset)){
+			preg_match('/^\d+$/', $offset) == 0){
 			$offset = 0;
 		}
 		$realOffset = $limit * $offset;
@@ -144,6 +147,7 @@ class ApiController extends \BaseController {
 		$resourceRecords = NULL;
 		$resourceIDs = array();
 		$resourceIDValueSet = array(0);
+
 
 		if (!empty($keywords)){
 			$retval["datas"]["total_num"] = DB::table("res_main")
