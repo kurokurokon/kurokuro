@@ -79,7 +79,12 @@ class ApiController extends \BaseController {
 			$retval["datas"]["datas"][$i] = $resouceElement;
 		}
 
-		return json_encode($retval);
+		$callback = Input::get('callback');
+		if (empty($callback)){
+			$callback = "laravel_".time();
+		}
+		return Response::json($retval)
+			->setCallback($callback);
 
 	}
 
@@ -103,7 +108,12 @@ class ApiController extends \BaseController {
 					->count()
 			);
 		}
-		return json_encode($retval);
+		$callback = Input::get('callback');
+		if (empty($callback)){
+			$callback = "laravel_".time();
+		}
+		return Response::json($retval)
+			->setCallback($callback);
 	}
 
 	public function getSearch(){
@@ -209,6 +219,10 @@ class ApiController extends \BaseController {
 
 			$retval["datas"]["datas"][$i] = $resouceElement;
 		}
-		return json_encode($retval);
+		if (empty($callback)){
+			$callback = "laravel_".time();
+		}
+		return Response::json($retval)
+			->setCallback($callback);
 	}
 }
